@@ -13,6 +13,16 @@ import pickle
 start = False
 first = False
 
+def send_picture(img):
+    global chat_id
+    # filename = "./image_" + (time.strftime("%y%b%d_%H%M%S"))
+    filename = "image.jpg"
+    cv2.imwrite(filename, img)
+    bot.sendPhoto(chat_id, open(filename, 'rb'))
+    bot.sendMessage(chat_id, 'Person at the door')
+
+
+
 
 def handle(msg):
     global telegramText
@@ -57,6 +67,7 @@ bot.message_loop(handle)
 
 
 def main():
+    sent_pic = False
     prevTime = 0
     doorUnlock = False
 
@@ -77,6 +88,7 @@ def main():
         rects = detector.detectMultiScale(gray, scaleFactor=1.1,
             minNeighbors=5, minSize=(30, 30),
             flags=cv2.CASCADE_SCALE_IMAGE)
+
         boxes = [(y, x + w, y + h, x) for (x, y, w, h) in rects]
 
         encodings = face_recognition.face_encodings(rgb, boxes)
@@ -103,6 +115,11 @@ def main():
                 if currentname != name:
                     currentname = name
                     print(currentname)
+            
+            else:
+                if not sent_pic and start:
+                    send_picture(frame)
+                    sent_pic = True
 
             names.append(name)
 
@@ -119,6 +136,8 @@ def main():
                 .8, (255, 0, 0), 2)
             
         cv2.imshow("Facial Recognition is Running", frame)
+
+
         key = cv2.waitKey(1) & 0xFF
 
         if key == ord("q"):
