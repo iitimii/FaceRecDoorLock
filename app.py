@@ -15,13 +15,10 @@ first = False
 
 def send_picture(img):
     global chat_id
-    # filename = "./image_" + (time.strftime("%y%b%d_%H%M%S"))
     filename = "image.jpg"
     cv2.imwrite(filename, img)
     bot.sendPhoto(chat_id, open(filename, 'rb'))
     bot.sendMessage(chat_id, 'Person at the door')
-
-
 
 
 def handle(msg):
