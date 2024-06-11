@@ -125,8 +125,6 @@ def main():
             break
         
 
-        # time.sleep(10) 
-
     cap.release()
     cv2.destroyAllWindows()
 

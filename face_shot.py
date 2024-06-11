@@ -1,7 +1,10 @@
+import os
 import cv2
 from train_model import train_model
 
-name = 'Timi' 
+name = 'Kenny' 
+output_directory = f"dataset/{name}" 
+os.makedirs(output_directory, exist_ok=True)
 
 cam = cv2.VideoCapture(0)
 
