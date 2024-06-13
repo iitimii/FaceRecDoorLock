@@ -6,10 +6,11 @@ import datetime
 from subprocess import call 
 import face_recognition
 import pickle
-import RPi.GPIO as GPIO #for relay
 
+import RPi.GPIO as GPIO #for relay
 #lcd library
 from Bluetin_Echo import Echo #ultrasonic sensor library
+
 
 start = False
 first = False
