@@ -6,37 +6,30 @@ import datetime
 from subprocess import call 
 import face_recognition
 import pickle
-
 import RPi.GPIO as GPIO #for relay
 #lcd library
-import lcd
 
 start = False
 first = False
-doorUnlock = False
-lcd_on = False
-
 
 RELAY_PIN = 21 #change if different
 
 GPIO.setmode(GPIO.BCM)
 
-# relay pins setup
+# # relay pins setup
 GPIO.setup(RELAY_PIN, GPIO.OUT)
-GPIO.output(RELAY_PIN, GPIO.LOW)
+GPIO.output(RELAY_PIN, GPIO.HIGH)
 
 
 
 def unlock_door():
     GPIO.output(RELAY_PIN, GPIO.LOW)
-    bot.sendMessage(chat_id, 'Door Unlocked')
-    doorUnlock = True
+    print("Door Unlocked")
     
 
 def lock_door():
     GPIO.output(RELAY_PIN, GPIO.HIGH)
-    bot.sendMessage(chat_id, 'Door Locked')
-    doorUnlock = False
+    print("Door Locked")
 
 
 def send_picture(img):
@@ -87,6 +80,8 @@ def handle(msg):
             bot.sendMessage(chat_id, 'LCD Display: Access Granted')
             #LCD SHOULD DISPLAY Access Granted
             unlock_door()
+            time.sleep(5)
+            lock_door()
 
         elif telegramText == '/help':
             bot.sendMessage(chat_id, '\nCommands:\n/start\n/stop\n/allow\n/decline\n/open\n/close\n/help')
@@ -100,9 +95,10 @@ bot.message_loop(handle)
 
 
 def main():
-    sent_pic = False
+    doorUnlock = False
     last_pic_time = 0.0
     prevTime = 0
+    recognized = False
 
     currentname = "unknown"
     encodingsP = "encodings.pickle"
@@ -122,11 +118,14 @@ def main():
         rects = detector.detectMultiScale(gray, scaleFactor=1.1,
             minNeighbors=5, minSize=(30, 30),
             flags=cv2.CASCADE_SCALE_IMAGE)
+        
+        recognized = False
 
         boxes = [(y, x + w, y + h, x) for (x, y, w, h) in rects]
 
         encodings = face_recognition.face_encodings(rgb, boxes)
         names = []
+        matches = []
 
         for encoding in encodings:
             matches = face_recognition.compare_faces(data["encodings"],
@@ -136,9 +135,7 @@ def main():
             if True in matches:
                 matchedIdxs = [i for (i, b) in enumerate(matches) if b]
                 counts = {}
-                unlock_door()
-                prevTime = time.time()
-                print("Face Recognized, Door unlock")
+                recognized = True
 
                 for i in matchedIdxs:
                     name = data["names"][i]
@@ -149,25 +146,34 @@ def main():
                 if currentname != name:
                     currentname = name
                     print(currentname)
-            
-            else:
-                if start and time.time() - last_pic_time > 30:
-                    send_picture(frame)
+                
 
             names.append(name)
 
-        if doorUnlock == True and time.time() - prevTime > 5:
-            lock_door()
-            print("Door locked back")
-            #LCD should display door locked
-
-        
         for ((top, right, bottom, left), name) in zip(boxes, names):
             cv2.rectangle(frame, (left, top), (right, bottom),
                 (0, 255, 0), 2)
             y = top - 15 if top - 15 > 15 else top + 15
             cv2.putText(frame, name, (left, y), cv2.FONT_HERSHEY_SIMPLEX,
                 .8, (255, 0, 0), 2)
+
+        if recognized:
+            print("Face Recognized, Door unlock")
+            unlock_door()
+            doorUnlock = True
+            prevTime = time.time()
+
+        else:
+            if start and (time.time() - last_pic_time > 30) and len(matches) > 0:
+                send_picture(frame)
+                last_pic_time = time.time()
+
+
+        if doorUnlock == True and time.time() - prevTime > 5:
+            lock_door()
+            doorUnlock = False
+            print("Door locked back")
+            #LCD should display door locked
             
         cv2.imshow("Security Camera", frame)
 
@@ -176,6 +182,7 @@ def main():
 
         if key == ord("q"):
             break
+
         
 
     cap.release()
