@@ -9,15 +9,17 @@ import pickle
 
 import RPi.GPIO as GPIO #for relay
 #lcd library
+import lcd
 
 start = False
 first = False
 doorUnlock = False
+lcd_on = False
 
 
-RELAY_PIN = 4 #change if different
+RELAY_PIN = 21 #change if different
 
-GPIO.setmode(GPIO.BOARD)
+GPIO.setmode(GPIO.BCM)
 
 # relay pins setup
 GPIO.setup(RELAY_PIN, GPIO.OUT)
@@ -29,6 +31,7 @@ def unlock_door():
     GPIO.output(RELAY_PIN, GPIO.LOW)
     bot.sendMessage(chat_id, 'Door Unlocked')
     doorUnlock = True
+    
 
 def lock_door():
     GPIO.output(RELAY_PIN, GPIO.HIGH)
@@ -156,6 +159,7 @@ def main():
         if doorUnlock == True and time.time() - prevTime > 5:
             lock_door()
             print("Door locked back")
+            #LCD should display door locked
 
         
         for ((top, right, bottom, left), name) in zip(boxes, names):
