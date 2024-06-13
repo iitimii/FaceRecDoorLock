@@ -7,8 +7,10 @@ from subprocess import call
 import face_recognition
 import pickle
 import RPi.GPIO as GPIO #for relay
-#lcd library
+from picamera2 import Picamera2
+# from RPLCD.i2c import CharLCD
 
+# lcd = CharLCD(i2c_expander='PCF8574', address=0x27, port=1, cols=16, rows=2, dotsize=8)
 start = False
 first = False
 
@@ -18,17 +20,20 @@ GPIO.setmode(GPIO.BCM)
 
 # # relay pins setup
 GPIO.setup(RELAY_PIN, GPIO.OUT)
-GPIO.output(RELAY_PIN, GPIO.HIGH)
+GPIO.output(RELAY_PIN, GPIO.LOW)
+
+# lcd.clear()
+# lcd.write_string("Security Door Lock")
 
 
 
 def unlock_door():
-    GPIO.output(RELAY_PIN, GPIO.LOW)
+    GPIO.output(RELAY_PIN, GPIO.HIGH)
     print("Door Unlocked")
     
 
 def lock_door():
-    GPIO.output(RELAY_PIN, GPIO.HIGH)
+    GPIO.output(RELAY_PIN, GPIO.LOW)
     print("Door Locked")
 
 
@@ -71,14 +76,14 @@ def handle(msg):
 
         elif telegramText == '/decline':
             bot.sendMessage(chat_id, 'Declining Access')
-            bot.sendMessage(chat_id, 'LCD Display: Access Denied')
-            #LCD SHOULD DISPLAY Access Denied
+            # lcd.clear()
+            # lcd.write_string('Declining Access')
             lock_door()
 
         elif telegramText == '/allow':
             bot.sendMessage(chat_id, 'Allowing Access')
-            bot.sendMessage(chat_id, 'LCD Display: Access Granted')
-            #LCD SHOULD DISPLAY Access Granted
+            # lcd.clear()
+            # lcd.write_string('Allowing Access')
             unlock_door()
             time.sleep(5)
             lock_door()
@@ -100,6 +105,13 @@ def main():
     prevTime = 0
     recognized = False
 
+    picam2 = Picamera2()
+    picam2.preview_configuration.main.size = (640, 640)
+    picam2.preview_configuration.main.format = "RGB888"
+    picam2.preview_configuration.align()
+    picam2.configure("preview")
+    picam2.start()
+
     currentname = "unknown"
     encodingsP = "encodings.pickle"
     cascade = "haarcascade_frontalface_default.xml"
@@ -108,9 +120,8 @@ def main():
     detector = cv2.CascadeClassifier(cascade)
     print("[INFO] starting video stream...")
 
-    cap = cv2.VideoCapture(0)
     while True:
-        ret, frame = cap.read()
+        frame = picam2.capture_array()
         frame = cv2.resize(frame, (500, 500))
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -173,7 +184,8 @@ def main():
             lock_door()
             doorUnlock = False
             print("Door locked back")
-            #LCD should display door locked
+            # lcd.clear()
+            # lcd.write_string('Door Locked')
             
         cv2.imshow("Security Camera", frame)
 
