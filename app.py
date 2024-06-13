@@ -8,9 +8,9 @@ import face_recognition
 import pickle
 import RPi.GPIO as GPIO #for relay
 from picamera2 import Picamera2
-# from RPLCD.i2c import CharLCD
+from RPLCD.i2c import CharLCD
 
-# lcd = CharLCD(i2c_expander='PCF8574', address=0x27, port=1, cols=16, rows=2, dotsize=8)
+lcd = CharLCD(i2c_expander='PCF8574', address=0x3F, port=1, cols=16, rows=2, dotsize=8)
 start = False
 first = False
 
@@ -22,8 +22,8 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setup(RELAY_PIN, GPIO.OUT)
 GPIO.output(RELAY_PIN, GPIO.LOW)
 
-# lcd.clear()
-# lcd.write_string("Security Door Lock")
+lcd.clear()
+lcd.write_string("Security Door Lock")
 
 
 
@@ -76,14 +76,14 @@ def handle(msg):
 
         elif telegramText == '/decline':
             bot.sendMessage(chat_id, 'Declining Access')
-            # lcd.clear()
-            # lcd.write_string('Declining Access')
+            lcd.clear()
+            lcd.write_string('Declining Access')
             lock_door()
 
         elif telegramText == '/allow':
             bot.sendMessage(chat_id, 'Allowing Access')
-            # lcd.clear()
-            # lcd.write_string('Allowing Access')
+            lcd.clear()
+            lcd.write_string('Allowing Access')
             unlock_door()
             time.sleep(5)
             lock_door()
@@ -184,8 +184,8 @@ def main():
             lock_door()
             doorUnlock = False
             print("Door locked back")
-            # lcd.clear()
-            # lcd.write_string('Door Locked')
+            lcd.clear()
+            lcd.write_string('Door Locked')
             
         cv2.imshow("Security Camera", frame)
 
@@ -195,9 +195,6 @@ def main():
         if key == ord("q"):
             break
 
-        
-
-    cap.release()
     cv2.destroyAllWindows()
 
 
