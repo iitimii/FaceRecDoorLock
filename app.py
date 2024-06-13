@@ -9,19 +9,13 @@ import pickle
 
 import RPi.GPIO as GPIO #for relay
 #lcd library
-from Bluetin_Echo import Echo #ultrasonic sensor library
-
 
 start = False
 first = False
 doorUnlock = False
-speed_of_sound = 340  
 
 
 RELAY_PIN = 4 #change if different
-ECHO_PIN = ...
-TRIG_PIN = ...
-echo = Echo(TRIG_PIN, ECHO_PIN, speed_of_sound)
 
 GPIO.setmode(GPIO.BOARD)
 
@@ -29,10 +23,7 @@ GPIO.setmode(GPIO.BOARD)
 GPIO.setup(RELAY_PIN, GPIO.OUT)
 GPIO.output(RELAY_PIN, GPIO.LOW)
 
- #ultrasonic sensor setup
-GPIO.setup(TRIG_PIN, GPIO.OUT)
-GPIO.setup(ECHO_PIN, GPIO.IN)
-GPIO.output(TRIG_PIN, GPIO.LOW)
+
 
 def unlock_door():
     GPIO.output(RELAY_PIN, GPIO.LOW)
@@ -43,11 +34,6 @@ def lock_door():
     GPIO.output(RELAY_PIN, GPIO.HIGH)
     bot.sendMessage(chat_id, 'Door Locked')
     doorUnlock = False
-
-def get_distance():
-    distance_samples = 10
-    dist = echo.read('cm', distance_samples)
-    return dist
 
 
 def send_picture(img):
@@ -130,57 +116,54 @@ def main():
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        distance = get_distance() #get distance from sensor in centinmeters
-        if distance < 2000: #if less than two meters perfrom detection
+        rects = detector.detectMultiScale(gray, scaleFactor=1.1,
+            minNeighbors=5, minSize=(30, 30),
+            flags=cv2.CASCADE_SCALE_IMAGE)
 
-            rects = detector.detectMultiScale(gray, scaleFactor=1.1,
-                minNeighbors=5, minSize=(30, 30),
-                flags=cv2.CASCADE_SCALE_IMAGE)
+        boxes = [(y, x + w, y + h, x) for (x, y, w, h) in rects]
 
-            boxes = [(y, x + w, y + h, x) for (x, y, w, h) in rects]
+        encodings = face_recognition.face_encodings(rgb, boxes)
+        names = []
 
-            encodings = face_recognition.face_encodings(rgb, boxes)
-            names = []
+        for encoding in encodings:
+            matches = face_recognition.compare_faces(data["encodings"],
+                encoding)
+            name = "Unknown"
 
-            for encoding in encodings:
-                matches = face_recognition.compare_faces(data["encodings"],
-                    encoding)
-                name = "Unknown"
+            if True in matches:
+                matchedIdxs = [i for (i, b) in enumerate(matches) if b]
+                counts = {}
+                unlock_door()
+                prevTime = time.time()
+                print("Face Recognized, Door unlock")
 
-                if True in matches:
-                    matchedIdxs = [i for (i, b) in enumerate(matches) if b]
-                    counts = {}
-                    unlock_door()
-                    prevTime = time.time()
-                    print("Face Recognized, Door unlock")
+                for i in matchedIdxs:
+                    name = data["names"][i]
+                    counts[name] = counts.get(name, 0) + 1
 
-                    for i in matchedIdxs:
-                        name = data["names"][i]
-                        counts[name] = counts.get(name, 0) + 1
+                name = max(counts, key=counts.get)
 
-                    name = max(counts, key=counts.get)
-
-                    if currentname != name:
-                        currentname = name
-                        print(currentname)
-                
-                else:
-                    if start and time.time() - last_pic_time > 30:
-                        send_picture(frame)
-
-                names.append(name)
-
-            if doorUnlock == True and time.time() - prevTime > 5:
-                lock_door()
-                print("Door locked back")
-
+                if currentname != name:
+                    currentname = name
+                    print(currentname)
             
-            for ((top, right, bottom, left), name) in zip(boxes, names):
-                cv2.rectangle(frame, (left, top), (right, bottom),
-                    (0, 255, 0), 2)
-                y = top - 15 if top - 15 > 15 else top + 15
-                cv2.putText(frame, name, (left, y), cv2.FONT_HERSHEY_SIMPLEX,
-                    .8, (255, 0, 0), 2)
+            else:
+                if start and time.time() - last_pic_time > 30:
+                    send_picture(frame)
+
+            names.append(name)
+
+        if doorUnlock == True and time.time() - prevTime > 5:
+            lock_door()
+            print("Door locked back")
+
+        
+        for ((top, right, bottom, left), name) in zip(boxes, names):
+            cv2.rectangle(frame, (left, top), (right, bottom),
+                (0, 255, 0), 2)
+            y = top - 15 if top - 15 > 15 else top + 15
+            cv2.putText(frame, name, (left, y), cv2.FONT_HERSHEY_SIMPLEX,
+                .8, (255, 0, 0), 2)
             
         cv2.imshow("Security Camera", frame)
 
@@ -197,4 +180,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    echo.stop()
