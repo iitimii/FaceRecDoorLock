@@ -10,7 +10,7 @@ import RPi.GPIO as GPIO #for relay
 from picamera2 import Picamera2
 from RPLCD.i2c import CharLCD
 
-lcd = CharLCD(i2c_expander='PCF8574', address=0x3F, port=1, cols=16, rows=2, dotsize=8)
+lcd = CharLCD(i2c_expander='PCF8574', address=0x3F, port=1, cols=16, rows=2, dotsize=8, backlight_enabled=True)
 start = False
 first = False
 
