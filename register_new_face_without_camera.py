@@ -25,6 +25,7 @@ img_counter = 0
 # picam2.configure("preview")
 # picam2.start()
 
+
 while True:
     # frame = picam2.capture_array()
     frame = np.ones((480, 480, 3), dtype=np.uint8)
