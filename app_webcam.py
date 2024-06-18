@@ -7,7 +7,6 @@ from subprocess import call
 import face_recognition
 import pickle
 import RPi.GPIO as GPIO #for relay
-from picamera2 import Picamera2
 from RPLCD.i2c import CharLCD
 
 
@@ -106,13 +105,6 @@ def main():
     prevTime = 0
     recognized = False
 
-    picam2 = Picamera2()
-    picam2.preview_configuration.main.size = (640, 640)
-    picam2.preview_configuration.main.format = "RGB888"
-    picam2.preview_configuration.align()
-    picam2.configure("preview")
-    picam2.start()
-
     currentname = "unknown"
     encodingsP = "encodings.pickle"
     cascade = "haarcascade_frontalface_default.xml"
@@ -121,8 +113,9 @@ def main():
     detector = cv2.CascadeClassifier(cascade)
     print("[INFO] starting video stream...")
 
+    cap = cv2.VideoCapture(0)
     while True:
-        frame = picam2.capture_array()
+        ret, frame = cap.read()
         frame = cv2.resize(frame, (500, 500))
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
