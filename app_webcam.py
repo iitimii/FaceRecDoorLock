@@ -112,10 +112,22 @@ def main():
     data = pickle.loads(open(encodingsP, "rb").read())
     detector = cv2.CascadeClassifier(cascade)
     print("[INFO] starting video stream...")
-
+    
+   
     cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        print("Error: Could not open webcam.")
+        return
     while True:
         ret, frame = cap.read()
+        if not ret:
+            print("Error: Failed to capture image.")
+            break
+
+        if frame is None or frame.size == 0:
+            print("Error: Captured frame is empty.")
+            continue
+
         frame = cv2.resize(frame, (500, 500))
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
