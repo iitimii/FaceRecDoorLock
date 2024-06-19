@@ -98,6 +98,17 @@ def handle(msg):
 bot = telepot.Bot('7484485509:AAFdv9PzCpLHAna7xXW7B9K6vBxW6TS3uqY')
 bot.message_loop(handle)  
 
+def find_available_camera():
+    for i in range(10)
+        cap = cv2.VideoCapture(i)
+        if cap.isOpened():
+            print(f"Found an available webcam at index {i}")
+            cap.release()
+            return i
+        cap.release()
+    print("No available webcam found.")
+    return None
+
 
 def main():
     doorUnlock = False
@@ -114,10 +125,17 @@ def main():
     print("[INFO] starting video stream...")
     
    
-    cap = cv2.VideoCapture(0)
+    cam_index = find_available_camera()
+    
+    if cam_index is None:
+        print("Error: No webcams found.")
+        return
+    
+    cap = cv2.VideoCapture(cam_index)
     if not cap.isOpened():
         print("Error: Could not open webcam.")
         return
+    
     while True:
         ret, frame = cap.read()
         if not ret:
