@@ -1,14 +1,9 @@
 import cv2
 import telepot
 import time
-from time import sleep
-import datetime
-from subprocess import call 
-import face_recognition
-import pickle
 import RPi.GPIO as GPIO #for relay
-from picamera2 import Picamera2
 from RPLCD.i2c import CharLCD
+from deepface import DeepFace
 
 
 lcd = CharLCD(i2c_expander='PCF8574', address=0x3F, port=1, cols=16, rows=2, dotsize=8, backlight_enabled=True)
@@ -99,75 +94,82 @@ def handle(msg):
 bot = telepot.Bot('7484485509:AAFdv9PzCpLHAna7xXW7B9K6vBxW6TS3uqY')
 bot.message_loop(handle)  
 
+def find_available_camera():
+    for i in range(10):
+        cap = cv2.VideoCapture(i)
+        if cap.isOpened():
+            print(f"Found an available webcam at index {i}")
+            cap.release()
+            return i
+        cap.release()
+    print("No available webcam found.")
+    return None
 
-def main():
+
+def main(model_name="Dlib", detector_backend='mediapipe'):
     doorUnlock = False
     last_pic_time = 0.0
     prevTime = 0
     recognized = False
-
-    picam2 = Picamera2()
-    picam2.preview_configuration.main.size = (640, 640)
-    picam2.preview_configuration.main.format = "RGB888"
-    picam2.preview_configuration.align()
-    picam2.configure("preview")
-    picam2.start()
-
-    currentname = "unknown"
-    encodingsP = "encodings.pickle"
-    cascade = "haarcascade_frontalface_default.xml"
-    print("[INFO] loading encodings + face detector...")
-    data = pickle.loads(open(encodingsP, "rb").read())
-    detector = cv2.CascadeClassifier(cascade)
-    print("[INFO] starting video stream...")
-
+    
+   
+    cam_index = find_available_camera()
+    
+    if cam_index is None:
+        print("Error: No webcams found.")
+        return
+    
+    cap = cv2.VideoCapture(cam_index)
+    if not cap.isOpened():
+        print("Error: Could not open webcam.")
+        return
+    
     while True:
-        frame = picam2.capture_array()
-        frame = cv2.resize(frame, (500, 500))
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        ret, frame = cap.read()
+        if not ret:
+            print("Error: Failed to capture image.")
+            break
 
-        rects = detector.detectMultiScale(gray, scaleFactor=1.1,
-            minNeighbors=5, minSize=(30, 30),
-            flags=cv2.CASCADE_SCALE_IMAGE)
-        
+        if frame is None or frame.size == 0:
+            print("Error: Captured frame is empty.")
+            continue
+
         recognized = False
+        face_detected = False
 
-        boxes = [(y, x + w, y + h, x) for (x, y, w, h) in rects]
+        try: 
+            faces = DeepFace.extract_faces(frame, detector_backend=detector_backend, align=True, enforce_detection=True)
+            face_detected = True
+        except Exception as e:
+            faces = []
+            face_detected = False
+        
+        dfs = DeepFace.find(frame, db_path='dataset', model_name=model_name, detector_backend=detector_backend, align=True, enforce_detection=False, silent=True)
 
-        encodings = face_recognition.face_encodings(rgb, boxes)
-        names = []
-        matches = []
+        if len(dfs) > 0:
+            for i in range(len(dfs)):
+                df = dfs[i]
+                if len(df) > 0:
+                    identity = str(df["identity"].iloc[0])
+                    name = identity.split("/")[-1].split(".")[0]
+                    bx = int(df['source_x'].iloc[0])
+                    by = int(df['source_y'].iloc[0])
+                    bw = int(df['source_w'].iloc[0])
+                    bh = int(df['source_h'].iloc[0])
+                    cv2.rectangle(frame, (bx, by), (bx+bw, by+bh), (0, 255, 0))
+                    cv2.putText(frame, name, (bx, by-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36,255,12), 2)
+                    recognized = True
+        
+        if len(faces) > 0:
+            for i in range(len(faces)):
+                face_dict = faces[i]["facial_area"]
+                x = int(face_dict["x"])
+                y = int(face_dict["y"])
+                w = int(face_dict["w"])
+                h = int(face_dict["h"])
+                cv2.circle(frame, (x+w//2, y+h//2), 5, (0, 0, 255), -1)
 
-        for encoding in encodings:
-            matches = face_recognition.compare_faces(data["encodings"],
-                encoding)
-            name = "Unknown"
-
-            if True in matches:
-                matchedIdxs = [i for (i, b) in enumerate(matches) if b]
-                counts = {}
-                recognized = True
-
-                for i in matchedIdxs:
-                    name = data["names"][i]
-                    counts[name] = counts.get(name, 0) + 1
-
-                name = max(counts, key=counts.get)
-
-                if currentname != name:
-                    currentname = name
-                    print(currentname)
-                
-
-            names.append(name)
-
-        for ((top, right, bottom, left), name) in zip(boxes, names):
-            cv2.rectangle(frame, (left, top), (right, bottom),
-                (0, 255, 0), 2)
-            y = top - 15 if top - 15 > 15 else top + 15
-            cv2.putText(frame, name, (left, y), cv2.FONT_HERSHEY_SIMPLEX,
-                .8, (255, 0, 0), 2)
+        
 
         if recognized:
             print("Face Recognized, Door unlock")
@@ -176,7 +178,7 @@ def main():
             prevTime = time.time()
 
         else:
-            if start and (time.time() - last_pic_time > 30) and len(matches) > 0:
+            if start and (time.time() - last_pic_time > 30) and face_detected:
                 send_picture(frame)
                 last_pic_time = time.time()
 
@@ -199,5 +201,5 @@ def main():
     cv2.destroyAllWindows()
 
 
-if __name__ == "__main__":
-    main()
+
+main()
