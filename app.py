@@ -65,10 +65,14 @@ def handle(msg):
         if telegramText == '/open':
             bot.sendMessage(chat_id, 'Unlocking Door')
             unlock_door()
+            lcd.clear()
+            lcd.write_string('Opening')
 
         elif telegramText == '/close':
             bot.sendMessage(chat_id, 'Locking Door')
             lock_door()
+            lcd.clear()
+            lcd.write_string('Closing')
 
         elif telegramText == '/decline':
             bot.sendMessage(chat_id, 'Declining Access')
@@ -180,6 +184,8 @@ def main(model_name="Dlib", detector_backend='mediapipe'):
             print("Face Recognized, Door unlock")
             unlock_door()
             doorUnlock = True
+            lcd.clear()
+            lcd.write_string('Face Recognised\n Opening')
             prevTime = time.time()
 
         else:
