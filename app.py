@@ -87,6 +87,7 @@ def handle(msg):
             unlock_door()
             time.sleep(10)
             lock_door()
+            lcd.clear()
             lcd.write_string('Door Locked')
 
         elif telegramText == '/help':
