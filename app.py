@@ -81,7 +81,7 @@ def handle(msg):
             lcd.clear()
             lcd.write_string('Allowing Access')
             unlock_door()
-            time.sleep(5)
+            time.sleep(10)
             lock_door()
 
         elif telegramText == '/help':
@@ -188,7 +188,7 @@ def main(model_name="Dlib", detector_backend='mediapipe'):
                 last_pic_time = time.time()
 
 
-        if doorUnlock == True and time.time() - prevTime > 5:
+        if doorUnlock == True and time.time() - prevTime > 10:
             lock_door()
             doorUnlock = False
             print("Door locked back")
