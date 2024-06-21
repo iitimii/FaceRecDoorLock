@@ -163,6 +163,7 @@ def main(model_name="Dlib", detector_backend='mediapipe'):
 
         except Exception as e:
             recognized = False
+            print('No Face')
         
         if len(faces) > 0:
             for i in range(len(faces)):
