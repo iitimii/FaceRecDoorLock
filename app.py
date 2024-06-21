@@ -1,35 +1,35 @@
 import cv2
 import telepot
 import time
-# import RPi.GPIO as GPIO #for relay
-# from RPLCD.i2c import CharLCD
+import RPi.GPIO as GPIO #for relay
+from RPLCD.i2c import CharLCD
 from deepface import DeepFace
 
 
-# # lcd = CharLCD(i2c_expander='PCF8574', address=0x3F, port=1, cols=16, rows=2, dotsize=8, backlight_enabled=True)
+lcd = CharLCD(i2c_expander='PCF8574', address=0x3F, port=1, cols=16, rows=2, dotsize=8, backlight_enabled=True)
 start = False
 first = False
 
 RELAY_PIN = 21 #change if different
 
-# # GPIO.setmode(GPIO.BCM)
+GPIO.setmode(GPIO.BCM)
 
 # # relay pins setup
-# # GPIO.setup(RELAY_PIN, GPIO.OUT)
-# # GPIO.output(RELAY_PIN, GPIO.LOW)
+GPIO.setup(RELAY_PIN, GPIO.OUT)
+GPIO.output(RELAY_PIN, GPIO.LOW)
 
-# lcd.clear()
-# lcd.write_string("Security Door Lock")
+lcd.clear()
+lcd.write_string("Security Door Lock")
 
 
 
 def unlock_door():
-    # # GPIO.output(RELAY_PIN, GPIO.HIGH)
+    GPIO.output(RELAY_PIN, GPIO.HIGH)
     print("Door Unlocked")
     
 
 def lock_door():
-    # # GPIO.output(RELAY_PIN, GPIO.LOW)
+    GPIO.output(RELAY_PIN, GPIO.LOW)
     print("Door Locked")
 
 
@@ -72,14 +72,14 @@ def handle(msg):
 
         elif telegramText == '/decline':
             bot.sendMessage(chat_id, 'Declining Access')
-            # lcd.clear()
-            # lcd.write_string('Declining Access')
+            lcd.clear()
+            lcd.write_string('Declining Access')
             lock_door()
 
         elif telegramText == '/allow':
             bot.sendMessage(chat_id, 'Allowing Access')
-            # lcd.clear()
-            # lcd.write_string('Allowing Access')
+            lcd.clear()
+            lcd.write_string('Allowing Access')
             unlock_door()
             time.sleep(5)
             lock_door()
@@ -191,8 +191,8 @@ def main(model_name="Dlib", detector_backend='mediapipe'):
             lock_door()
             doorUnlock = False
             print("Door locked back")
-            # lcd.clear()
-            # lcd.write_string('Door Locked')
+            lcd.clear()
+            lcd.write_string('Door Locked')
             
         cv2.imshow("Security Camera", frame)
 
