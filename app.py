@@ -87,6 +87,7 @@ def handle(msg):
             unlock_door()
             time.sleep(10)
             lock_door()
+            lcd.write_string('Door Locked')
 
         elif telegramText == '/help':
             bot.sendMessage(chat_id, '\nCommands:\n/start\n/stop\n/allow\n/decline\n/open\n/close\n/help')
