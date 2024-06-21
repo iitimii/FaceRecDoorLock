@@ -38,7 +38,7 @@ def send_picture(img):
     filename = "image.jpg"
     cv2.imwrite(filename, img)
     bot.sendPhoto(chat_id, open(filename, 'rb'))
-    bot.sendMessage(chat_id, 'Person at the door')
+    bot.sendMessage(chat_id, 'Person at the door\n/allow or /decline')
 
 
 def handle(msg):
