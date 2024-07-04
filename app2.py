@@ -77,17 +77,23 @@ def find_available_cameras():
         cap.release()
     return available_cameras
 
-def load_face_embeddings():
-    if os.path.exists(EMBEDDINGS_FILE):
-        with open(EMBEDDINGS_FILE, 'rb') as f:
-            return pickle.load(f)
-    return {}
-
 def save_face_embedding(name, embedding):
     embeddings = load_face_embeddings()
     embeddings[name] = embedding
-    with open(EMBEDDINGS_FILE, 'wb') as f:
-        pickle.dump(embeddings, f)
+    with open(EMBEDDINGS_FILE, 'ab') as f:
+        pickle.dump({name: embedding}, f)
+
+def load_face_embeddings():
+    embeddings = {}
+    if os.path.exists(EMBEDDINGS_FILE):
+        with open(EMBEDDINGS_FILE, 'rb') as f:
+            while True:
+                try:
+                    data = pickle.load(f)
+                    embeddings.update(data)
+                except EOFError:
+                    break
+    return embeddings
 
 def extract_features(face_roi):
     # Simple feature extraction: flatten the image and normalize
