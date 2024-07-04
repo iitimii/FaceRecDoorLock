@@ -104,7 +104,6 @@ def main():
     doorUnlock = False
     last_pic_time = 0.0
     prevTime = 0
-    recognized = False
     
     available_cameras = find_available_cameras()
     
@@ -152,6 +151,7 @@ def main():
         faces = face_cascade.detectMultiScale(gray, 1.3, 5)
         
         face_detected = len(faces) > 0
+        recognized = False
 
         for (x, y, w, h) in faces:
             cv2.rectangle(frame_face, (x, y), (x+w, y+h), (255, 0, 0), 2)
@@ -171,11 +171,16 @@ def main():
             doorUnlock = True
             prevTime = time.time()
         elif face_detected:
-            print("Face Detected")
+            print("Unknown Face Detected")
             if start and (time.time() - last_pic_time > 30):
                 send_picture(frame_capture)
                 last_pic_time = time.time()
                 print("Sending Picture")
+
+        if doorUnlock and time.time() - prevTime > 10:
+            lock_door()
+            doorUnlock = False
+            print("Door locked back")
 
         cv2.imshow("Face Recognition Camera", frame_face)
         if dual_camera_mode:
