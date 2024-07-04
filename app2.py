@@ -4,7 +4,6 @@ import time
 import numpy as np
 import pickle
 import os
-from sklearn.metrics.pairwise import cosine_similarity
 
 start = False
 first = False
@@ -90,9 +89,13 @@ def save_face_embedding(name, embedding):
     with open(EMBEDDINGS_FILE, 'wb') as f:
         pickle.dump(embeddings, f)
 
-def recognize_face(face_embedding, known_embeddings, threshold=0.6):
+def extract_features(face_roi):
+    # Simple feature extraction: flatten the image and normalize
+    return face_roi.flatten() / 255.0
+
+def recognize_face(face_embedding, known_embeddings, threshold=0.8):
     for name, known_embedding in known_embeddings.items():
-        similarity = cosine_similarity([face_embedding], [known_embedding])[0][0]
+        similarity = np.dot(face_embedding, known_embedding) / (np.linalg.norm(face_embedding) * np.linalg.norm(known_embedding))
         if similarity > threshold:
             return name
     return None
@@ -125,7 +128,6 @@ def main():
         return
     
     face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-    face_recognizer = cv2.face.LBPHFaceRecognizer_create()
     
     known_embeddings = load_face_embeddings()
     
@@ -153,8 +155,8 @@ def main():
 
         for (x, y, w, h) in faces:
             cv2.rectangle(frame_face, (x, y), (x+w, y+h), (255, 0, 0), 2)
-            face_roi = gray[y:y+h, x:x+w]
-            face_embedding = face_recognizer.compute(face_roi)[1]
+            face_roi = cv2.resize(gray[y:y+h, x:x+w], (100, 100))  # Resize for consistency
+            face_embedding = extract_features(face_roi)
             
             name = recognize_face(face_embedding, known_embeddings)
             if name:
@@ -188,8 +190,8 @@ def main():
             name = input("Enter the name for this face: ")
             if name and len(faces) > 0:
                 x, y, w, h = faces[0]  # Use the first detected face
-                face_roi = gray[y:y+h, x:x+w]
-                face_embedding = face_recognizer.compute(face_roi)[1]
+                face_roi = cv2.resize(gray[y:y+h, x:x+w], (100, 100))
+                face_embedding = extract_features(face_roi)
                 save_face_embedding(name, face_embedding)
                 print(f"Saved face embedding for {name}")
 
