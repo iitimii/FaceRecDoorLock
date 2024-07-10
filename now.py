@@ -114,6 +114,7 @@ def main():
     doorUnlock = False
     last_detection_time = 0.0
     prevTime = 0
+    face_detected_start_time = None
     
     available_cameras = find_available_cameras()
     
@@ -196,13 +197,20 @@ def main():
             unlock_door()
             doorUnlock = True
             prevTime = time.time()
+
         elif face_detected and not recognized:
             print("Unknown Face Detected")
-            if start and (time.time() - last_detection_time > 30):
-                send_picture(frame_face)
-                capture_and_send_video(image_capture_cam)
-                last_detection_time = time.time()
-                print("Sending Picture and Video")
+            if face_detected_start_time is None:
+                face_detected_start_time = time.time()
+            elif time.time() - face_detected_start_time >= 10:
+                if start and (time.time() - last_detection_time > 90):
+                    send_picture(frame_face)
+                    capture_and_send_video(image_capture_cam)
+                    last_detection_time = time.time()
+                    print("Sending Picture and Video")
+                face_detected_start_time = None
+        else:
+            face_detected_start_time = None
 
         if doorUnlock and time.time() - prevTime > 10:
             lock_door()
